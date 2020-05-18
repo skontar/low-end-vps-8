@@ -1,0 +1,174 @@
+#!/bin/bash
+
+# Copyright (c) 2018-2020 Stanislav Kontar
+# License: MIT
+#
+# Inspired by https://freevps.us/downloads/bench.sh
+
+sys_info() { 
+    cname=$( awk -F ":" '/model name/ {
+                 gsub(/^[ ]+/, "", $2); print $2; exit 
+             }' < /proc/cpuinfo )
+    cores=$( nproc )
+    ram=$( free -h | awk '/Mem:/ { print $2 }' )
+    swap=$( free -h | awk '/Swap:/ { print $2 }' )
+    host=$( hostname )
+    kernel=$( uname -r )
+    arch=$( uname -m )
+    os=$( < /etc/redhat-release )
+    ipv4=$( curl -s --connect-timeout 10 --max-time 20 ipv4.icanhazip.com )
+    result="$?"
+    if [[ "$result" == 7 ]]; then
+        ipv4="Connection timeout 10s"
+    elif [[ "$result" == 28 ]]; then
+        ipv4="Download timeout 20s"
+    fi
+    
+    echo "System Information"
+    echo "=================="
+    
+    echo "Procesor    : $cname"
+    echo "Cores       : $cores"
+    echo "RAM         : $ram"
+    echo "Swap        : $swap"
+    echo "OS          : $os"
+    echo "Arch        : $arch"
+    echo "Kernel      : $kernel"
+    echo "Hostname    : $host"
+    echo "Public IPv4 : $ipv4"
+    echo
+}
+
+cpu_test() {
+	echo "CPU Speed"
+    echo "========="
+    
+    aes_raw=$( openssl speed --seconds 1 aes-256-cbc 2> /dev/null )
+    aes=$( awk '/aes-256 cbc/ { printf "%.0f MB/s", $NF / 1024 }' <<< "$aes_raw" )
+    echo "AES-256 CCB : $aes"
+    
+    dsa_raw=$( openssl speed --seconds 1 dsa2048 2> /dev/null )
+    dsa=$( awk '/dsa 2048/ { printf "%.0f sign/s | %.0f verify/s", $(NF-1), $NF }' <<< "$dsa_raw" )
+    echo "DSA 2048    : $dsa"
+    
+    sha_raw=$( openssl speed --seconds 1 sha256 2> /dev/null )
+    sha=$( awk '/sha256/ { printf "%.0f MB/s", $NF / 1024 }' <<< "$sha_raw" )
+    echo "SHA256      : $sha"
+    
+    echo
+}
+
+io_test() {
+    echo "Disk Speed"
+    echo "=========="
+    
+    test_file="/tmp/test_$$"
+ 
+	for (( i = 1; i < 4; i++ )); do
+		raw=$( ( dd if=/dev/zero of="$test_file" bs=64k count=16k conv=fdatasync \
+              && rm "$test_file" ) 2>&1 )
+		io=$( awk -F "," '/copied/ { gsub(/^[ ]+/, "", $NF); print $NF }' <<< "$raw" )
+		echo "I/O #$i run  : $io"
+    done
+    echo
+}
+
+
+download_test() {
+    downloads=(
+        "Miami, FL, US             Futurehosting"
+        "http://mia.futurehosting.com/test.zip"
+        
+        "Dallas, TX, US            Softlayer"  
+        "http://speedtest.dal05.softlayer.com/downloads/test10.zip"
+        
+        "Seattle, WA, US           Softlayer"
+        "http://speedtest.sea01.softlayer.com/downloads/test10.zip"
+        
+        "Rotterdam, Netherlands    i3D"
+        "http://mirror.i3d.net/10mb.bin"
+        
+        "Prague, Czech Republic    Superhosting"
+        "http://download.superhosting.cz/10mb.bin"
+        
+        "Prague, Czech republic    10gbps"
+        "http://1997754032.rsc.cdn77.org/10mb.bin"
+    )
+       
+    echo "Download Speed"
+    echo "=============="   
+    for (( i = 0; i < ${#downloads[@]}; i += 2 )); do
+        raw_speed=$( curl -L -4 ${downloads[i + 1]} -w "%{speed_download}" \
+                     --connect-timeout 10 --max-time 300 \
+                     -o /dev/null 2>/dev/null )
+        result="$?"
+        if [[ "$result" == 7 ]]; then
+            speed="Connection timeout 10s"
+        elif [[ "$result" == 28 ]]; then
+            speed="Download timeout 5min"
+        else
+            speed=$( awk '{ printf "%.1f MB/s", $0 / 1024 / 1024 }' <<< "$raw_speed" )
+        fi
+        printf "%-50s%s\n" "${downloads[i]}" "$speed"
+    done
+    echo
+}
+
+
+# Use http://c.speedtest.net/speedtest-servers-static.php
+# or look at https://github.com/sivel/speedtest-cli
+
+upload_test() {
+    uploads=(
+        "Atlanta, GA, US           Hotwire Fision"
+        "http://speedtestatl.gethotwired.com/speedtest/upload.php"
+    
+        "Dallas, TX, US            Frontier"  
+        "http://dallas.tx.speedtest.frontier.com/speedtest/upload.php"
+    
+        "Seattle, WA, US           AT&T"
+        "http://sea.speedtest.sbcglobal.net/speedtest/upload.php"
+    
+        "Bremen, Germany           LWLcom GmbH"
+        "http://speedtest.lwlcom.net/speedtest/upload.php"
+        
+        "Prague, Czech Republic    Vodafone"
+        "http://speedtest.vodafone.cz/speedtest/upload.php"
+        
+        "Prague, Czech Republic    Nej TV"
+        "http://rychlost.nejtv.cz/speedtest/upload.php"
+    )
+    
+    echo "Upload Speed"
+    echo "============"   
+
+    test_file="/tmp/10mb.test"
+    dd if=/dev/zero of="$test_file" count=1024 bs=10240 &> /dev/null
+
+    for (( i = 0; i < ${#uploads[@]}; i += 2 )); do  
+        raw_speed=$( curl -L -4 ${uploads[i + 1]} -F "file=@$test_file" -w "%{speed_upload}" \
+                     --connect-timeout 10 --max-time 300 \
+                     -o /dev/null 2>/dev/null )
+        result="$?"
+        if [[ "$result" == 7 ]]; then
+            speed="Connection timeout 10s"
+        elif [[ "$result" == 28 ]]; then
+            speed="Upload timeout 5min"
+        else
+            speed=$( awk '{ printf "%.1f MB/s", $0 / 1024 / 1024 }' <<< "$raw_speed" )
+        fi
+        printf "%-50s%s\n" "${uploads[i]}" "$speed"
+    done
+    
+    rm "$test_file"
+    echo
+}
+
+
+( 
+  sys_info
+  cpu_test
+  io_test
+  download_test
+  upload_test 
+) | tee ~/benchmark.log

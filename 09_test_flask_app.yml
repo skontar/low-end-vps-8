@@ -1,0 +1,69 @@
+---
+- hosts: all
+
+  become: no
+  gather_facts: False 
+
+  tasks:     
+    - name: Copy Test Flask app
+      synchronize: 
+        src: files/Test
+        dest: /srv
+
+    - name: Run setup
+      command: bash setup
+      args:
+        chdir: /srv/Test
+        
+    - name: Make __pycache__ directory writable by uwsgi
+      file:
+        path: /srv/Test/__pycache__
+        owner: "{{ ansible_user }}"
+        group: uwsgi
+        mode: "g+w"
+        state: directory
+      become: true
+
+    - name: Make data directory writable by uwsgi
+      file:
+        path: /srv/Test/data
+        owner: "{{ ansible_user }}"
+        group: uwsgi
+        mode: "g+w"
+        state: directory
+      become: true
+
+    - name: Check if HTTPS config is already used
+      stat: 
+        path: /etc/nginx/conf.d/test_nginx_https.conf
+      register: https_already
+        
+    - name: Create symlink for nginx
+      file:
+        src: /srv/Test/test_nginx.conf
+        dest: /etc/nginx/conf.d/test_nginx.conf
+        state: link
+      become: true
+      when: https_already.stat.exists == False
+      notify: Restart nginx
+    
+    - name: Create symlink for uwsgi
+      file:
+        src: /srv/Test/test_uwsgi.ini
+        dest: /etc/uwsgi.d/test_uwsgi.ini
+        state: link
+      become: true
+      notify: Restart uwsgi
+    
+  handlers:
+    - name: Restart nginx
+      service: 
+        name: nginx 
+        state: restarted
+      become: true
+
+    - name: Restart uwsgi
+      service: 
+        name: uwsgi 
+        state: restarted
+      become: true

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Get available hosts and playbooks
+hosts=$( tail -n +2 hosts )
+readarray -t hosts <<< "$hosts"
+playbooks=( *.yml )
+
+# Get user to select hosts
+echo "Select host:"
+echo "[0] - All"
+for (( i = 0; i < ${#hosts[@]}; i++ )); do
+    echo "[$(( i + 1 ))] - ${hosts[i]}"
+done
+
+read response
+echo
+
+if ! (( response >= 0 && response <= ${#hosts[@]} )); then
+    echo "Invalid host"
+    exit 1
+fi
+if (( response != 0 )); then
+    host="${hosts[response - 1]}"
+fi
+
+# Get info
+user=$( ansible-vault view group_vars/servers | awk '/ansible_user/ { print $2 }' )
+port=$( ansible-vault view group_vars/servers | awk '/ansible_port/ { print $2 }' )
+ip_address=$( ansible-vault view "host_vars/$host" | awk '/ansible_host/ { print $2 }' )
+
+echo ssh "$user@$ip_address" -p "$port"
+ssh "$user@$ip_address" -p "$port"

@@ -1,0 +1,60 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks:
+    - name: Install needed packages
+      yum: 
+        name:
+          - gcc
+          - python36-devel
+        state: present
+
+    - name: Install uwsgi
+      shell: pip3 install uwsgi
+
+    - name: Create uwsgi group
+      group:
+        name: uwsgi
+        state: present
+
+    - name: Add uwsgi user
+      user:
+        name: uwsgi
+        group: uwsgi
+
+    - name: Copy uwsgi.ini
+      copy:
+        src: files/uwsgi/uwsgi.ini
+        dest: /etc/uwsgi.ini
+
+    - name: Copy uwsgi.service
+      copy:
+        src: files/uwsgi/uwsgi.service
+        dest: /etc/systemd/system/uwsgi.service
+
+    - name: Create directory for applications
+      file:
+        path: /etc/uwsgi.d
+        state: directory
+  
+    - name: Create directory for PID files
+      file:
+        path: /run/uwsgi
+        state: directory  
+
+    - name: Create directory for socket files
+      file:
+        path: /srv/sockets
+        owner: uwsgi
+        group: nginx
+        mode: 0770
+        state: directory
+
+    - name: Restart uwsgi
+      service: 
+        name: uwsgi 
+        enabled: yes
+        state: restarted

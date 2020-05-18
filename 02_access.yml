@@ -1,0 +1,104 @@
+---
+- hosts: all
+   
+  gather_facts: False
+
+  tasks:
+    - name: Use correct SSH user
+      set_fact: 
+        ansible_user: root
+
+    - name: Use correct SSH port
+      set_fact: 
+        ansible_port: 22
+
+    - name: Use correct SSH password
+      set_fact: 
+        ansible_ssh_pass: "{{ original_root_password }}"
+  
+    - name: Create user
+      user: 
+        name: "{{ new_user }}"
+        shell: /bin/bash 
+        password: "{{ ansible_become_pass | password_hash('sha512') }}"
+
+    - name: Install sudo, python3-libselinux, iptables
+      dnf: 
+        name:
+          - sudo
+          - python3-libselinux
+          - iptables
+        state: present 
+             
+    - name: Add authorized keys for user
+      authorized_key: 
+        user: "{{ new_user }}"
+        key: "{{ lookup('file', item) }}"
+      with_items: "{{ public_keys }}"
+
+    - name: Remove yum cache and fastest-mirror data
+      file:
+        path: /var/cache/yum
+        state: absent
+
+#    - name: Configuration to disable IPv6
+#      lineinfile:
+#        path: /etc/sysctl.conf
+#        regexp: "{{ item }}"
+#        line: "{{ item }} = 1"
+#      with_items:
+#        - net.ipv6.conf.all.disable_ipv6
+#        - net.ipv6.conf.default.disable_ipv6
+#               
+#    - name: Disable IPv6 in runtime
+#      command: sysctl -p
+
+    - name: Add user to sudoers
+      lineinfile: 
+        dest: /etc/sudoers 
+        regexp: "{{ new_user }} ALL" 
+#        line: "{{ new_user }} ALL=(ALL) ALL"
+        line: "{{ new_user }} ALL=(ALL) NOPASSWD: ALL"
+
+    - name: Change ssh port
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        regexp: '^Port\s'
+        line: "Port {{ new_port }}"
+
+    - name: Disallow password authentication
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication"
+        line: "PasswordAuthentication no"
+      
+    - name: Disallow root SSH access
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+          
+    - name: Lock root account
+      command: passwd --lock root
+          
+    - name: Drop iptables rules
+      iptables:
+        ip_version: "{{ item }}"
+        flush: yes
+      with_items:
+        - ipv4
+        - ipv6
+    
+    - name: Restart ssh
+      service: 
+        name: sshd
+        state: restarted
+
+    - name: Use new SSH user
+      set_fact: 
+        ansible_user: "{{ new_user }}"
+
+    - name: Use new SSH port
+      set_fact: 
+        ansible_port: "{{ new_port }}"
+

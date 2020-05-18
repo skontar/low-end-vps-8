@@ -1,0 +1,109 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks: 
+    - name: Install certbot
+      dnf: 
+        name: certbot
+        state: present 
+
+    - name: Check local copy of letsencrypt
+      local_action: stat path=letsencrypt/{{ hostname }}
+      become: no
+      register: local_copy
+    - debug:  
+        var: local_copy.stat.exists
+            
+    - name: Restore letsencrypt
+      synchronize:  
+        src=letsencrypt/{{ hostname }}/letsencrypt
+        dest=/etc
+        mode=push
+      when: local_copy.stat.exists == True
+            
+    - name: Run certbot
+      shell: >
+        /usr/local/bin/certbot-auto certonly --nginx --agree-tos --non-interactive 
+        -m {{ target_email }} -d {{ hostname }},test.{{ hostname }}
+      args:
+        creates: /var/log/letsencrypt/letsencrypt.log
+      register: certbot_out
+      when: local_copy.stat.exists == False
+    - debug:
+        var: certbot_out.stdout_lines
+      when: local_copy.stat.exists == False
+    - debug: 
+        var: certbot_out.stderr_lines
+      when: local_copy.stat.exists == False
+        
+    - name: Backup letsencrypt
+      synchronize:  
+        src=/etc/letsencrypt 
+        dest=letsencrypt/{{ hostname }}
+        mode=pull
+      when: local_copy.stat.exists == False  
+
+    - name: Update Diffie-Hellman parameters
+      shell: >
+        openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+      args:
+        creates: /etc/ssl/certs/dhparam.pem
+
+    - name: Remove old symlink for nginx
+      file:
+        path: /etc/nginx/conf.d/test_nginx.conf
+        state: absent
+      become: true
+      notify: Restart nginx
+        
+    - name: Create new symlink for nginx
+      file:
+        src: /srv/Test/test_nginx_https.conf
+        dest: /etc/nginx/conf.d/test_nginx_https.conf
+        state: link
+      become: true
+      notify: Restart nginx
+
+    - name: Remove old symlink for uwsgi
+      file:
+        path: /etc/uwsgi.d/test_uwsgi.ini
+        state: absent
+      become: true
+        
+    - name: Create new symlink for uwsgi
+      file:
+        src: /srv/Test/test_uwsgi_https.ini
+        dest: /etc/uwsgi.d/test_uwsgi_https.ini
+        state: link
+      become: true
+
+    - name: Handle root with HTTPS
+      copy: 
+        src: "{{ item }}"
+        dest: /etc/nginx/conf.d
+      with_fileglob: files/nginx/root_https.conf
+      notify: Restart nginx
+
+    - name: Update HOSTNAMEs in nginx config files
+      replace:
+        path: "{{ item }}"
+        regexp: 'HOSTNAME'
+        replace: "{{ hostname }}"
+      with_items:
+        - /srv/Test/test_nginx_https.conf
+        - /etc/nginx/conf.d/root_https.conf
+
+    - name: Enable certbot renewal timer
+      systemd:
+        state: started
+        enabled: true
+        name: certbot-renew.timer
+  
+  handlers:
+    - name: Restart nginx
+      service: 
+        name: nginx 
+        state: restarted

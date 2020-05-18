@@ -1,0 +1,47 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks:
+    - name: Install postfix
+      dnf: 
+        name: postfix
+        state: present
+    
+    - name: Allow receiving emails from everywhere
+      lineinfile: 
+        dest: /etc/postfix/main.cf
+        regexp: '^\s*inet_interfaces'
+        line: "inet_interfaces = all"
+      notify: Restart postfix
+    
+    - name: Allow only local clients to send emails
+      lineinfile: 
+        dest: /etc/postfix/main.cf
+        line: "smtpd_client_restrictions = permit_inet_interfaces"
+      notify: Restart postfix
+
+    - name: Enable virtual_alias_maps
+      lineinfile: 
+        dest: /etc/postfix/main.cf
+        line: "virtual_alias_maps = hash:/etc/postfix/virtual"
+      notify: Restart postfix
+
+    - name: Set catch-all email redirect
+      copy: 
+        dest: /etc/postfix/virtual
+        content: "@{{ hostname }} {{ target_email }}"
+        force: yes
+      notify: Reload virtual table
+
+  handlers:
+    - name: Restart postfix
+      service: 
+        name: postfix 
+        state: restarted
+        enabled: yes
+
+    - name: Reload virtual table
+      command: postmap /etc/postfix/virtual

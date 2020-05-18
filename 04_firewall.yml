@@ -1,0 +1,36 @@
+# https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands
+
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False
+  
+  tasks: 
+    - name: Remove firewalld package
+      dnf: 
+        name: firewalld
+        state: absent
+  
+    - name: Install iptables-services package
+      dnf: 
+        name: iptables-services
+        state: present
+
+    - name: Firewall rules
+      template:
+        src: templates/iptables.j2
+        dest: "{{ item }}"
+        mode: 0600
+      with_items: 
+        - /etc/sysconfig/iptables
+        - /etc/sysconfig/ip6tables
+
+    - name: Firewall - start iptables
+      service:
+        name: "{{ item }}"
+        state: restarted
+        enabled: yes
+      with_items: 
+        - iptables
+        - ip6tables

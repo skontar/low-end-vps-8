@@ -1,0 +1,41 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks:
+    - name: Set hostname
+      hostname:
+        name: "{{ hostname }}"
+
+    - name: Run centos-minimal
+      script: files/centos-minimal force
+  
+    - name: Enable EPEL
+      dnf: 
+        name: epel-release 
+        state: present 
+
+    - name: Enable PowerTools for EPEL
+      shell: >
+        dnf config-manager --set-enabled PowerTools
+  
+    - name: Install packages
+      dnf: 
+        name:
+          - mc
+          - less
+          - htop
+          - rsync
+          - python36
+          - vim-enhanced
+          - tmux
+          - python3-libselinux
+        state: present
+
+    - name: Set persistent journal
+      lineinfile: 
+        dest: /etc/systemd/journald.conf
+        regexp: "Storage="
+        line: "Storage=persistent"

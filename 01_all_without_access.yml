@@ -1,0 +1,14 @@
+---
+- hosts: all
+
+  gather_facts: False 
+
+- import_playbook: 03_basic_setup.yml
+- import_playbook: 04_firewall.yml
+- import_playbook: 05_postfix.yml
+- import_playbook: 06_updates.yml
+- import_playbook: 07_nginx.yml
+- import_playbook: 08_uwsgi.yml
+- import_playbook: 09_test_flask_app.yml
+- import_playbook: 10_letsencrypt.yml
+  when: https

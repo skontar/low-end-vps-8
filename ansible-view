@@ -1,0 +1,8 @@
+#!/bin/bash
+files=( group_vars/* host_vars/* )
+
+for file in "${files[@]}"; do
+    echo "$file"
+    ansible-vault view "$file"
+    echo
+done

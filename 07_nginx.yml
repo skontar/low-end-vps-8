@@ -1,0 +1,73 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks:
+    - name: Remove Apache
+      yum: 
+        name: httpd
+        state: absent
+
+    - name: Install Nginx
+      yum: 
+        name: nginx
+        state: present
+
+    - name: Reliably detect processors on virtualization
+      shell: nproc
+      register: processors
+    
+    - name: Change workers
+      lineinfile: 
+        dest: /etc/nginx/nginx.conf
+        regexp: "^worker_processes"
+        line: "worker_processes {{ processors.stdout }};"
+      notify: Restart nginx
+
+    - name: Enable gzip
+      copy: 
+        src: "{{ item }}"
+        dest: /etc/nginx/conf.d
+      with_fileglob: files/nginx/gzip.conf
+      notify: Restart nginx
+
+    - name: Set www root
+      lineinfile:
+        dest: /etc/nginx/nginx.conf
+        regexp: '^\s*root.*;'
+        line: "        root         /srv/www;"
+      notify: Restart nginx      
+
+    - name: Define logging format with server_name
+      lineinfile: 
+        dest: /etc/nginx/nginx.conf
+        insertbefore: '^\s+access_log'
+        line: "    log_format full_combined '$remote_addr - $remote_user [$time_local] \"$server_name $request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\"';"
+      notify: Restart nginx      
+
+    - name: Use better logging format
+      lineinfile: 
+        dest: /etc/nginx/nginx.conf
+        regexp: '^\s+access_log'
+        line: "    access_log /var/log/nginx/access.log full_combined;"
+      notify: Restart nginx
+
+    - name: Own /srv directory
+      file:
+        path: /srv
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Copy www
+      copy: 
+        src: files/www
+        dest: /srv/
+
+  handlers:
+    - name: Restart nginx
+      service: 
+        name: nginx 
+        state: restarted
+        enabled: yes

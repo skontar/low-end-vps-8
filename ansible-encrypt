@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ansible-vault encrypt group_vars/*
+ansible-vault encrypt host_vars/*

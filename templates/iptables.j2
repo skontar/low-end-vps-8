@@ -1,0 +1,14 @@
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -i lo -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED  -j ACCEPT
+-A INPUT -m conntrack --ctstate INVALID -j DROP
+-A INPUT -p tcp -m tcp --dport {{ new_port }} -m conntrack --ctstate NEW -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 80 -m conntrack --ctstate NEW -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 443 -m conntrack --ctstate NEW -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 25 -m conntrack --ctstate NEW -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -p icmpv6 -j ACCEPT
+COMMIT

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Get available hosts and playbooks
+hosts=$( tail -n +2 hosts )
+readarray -t hosts <<< "$hosts"
+playbooks=( *.yml )
+
+# Get user to select hosts
+echo "Select host:"
+echo "[0] - All"
+for (( i = 0; i < ${#hosts[@]}; i++ )); do
+    echo "[$(( i + 1 ))] - ${hosts[i]}"
+done
+
+read response
+echo
+
+if ! (( response >= 0 && response <= ${#hosts[@]} )); then
+    echo "Invalid host"
+    exit 1
+fi
+if (( response != 0 )); then
+    host="${hosts[response - 1]}"
+fi
+
+# Get user to select playbook
+echo "Select playbook:"
+for (( i = 0; i < ${#playbooks[@]}; i++ )); do
+    echo "[$i] - ${playbooks[i]}"
+done
+
+read response
+echo
+
+if ! (( response >= 0 && response <= ${#playbooks[@]} )); then
+    echo "Invalid playbook"
+    exit 1
+fi
+playbook="${playbooks[response]}"
+
+# Check if specific host was selected
+if [[ host ]]; then
+    echo "ansible-playbook --inventory-file=hosts --limit=\"$host\" \"$playbook\""
+    echo
+    ansible-playbook --inventory-file=hosts --limit="$host" "$playbook"
+else
+    echo "ansible-playbook --inventory-file=hosts \"$playbook\""
+    echo
+    ansible-playbook --inventory-file=hosts "$playbook"
+fi
