@@ -11,7 +11,6 @@ authselect
 authselect-libs
 basesystem
 bash
-bind-export-libs
 biosdevname
 brotli
 bzip2-libs
@@ -39,9 +38,6 @@ dbus-libs
 dbus-tools
 device-mapper
 device-mapper-libs
-dhcp-client
-dhcp-common
-dhcp-libs
 diffutils
 dnf
 dnf-data
@@ -49,8 +45,6 @@ dnf-plugin-spacewalk
 dnf-plugins-core
 dracut
 dracut-config-rescue
-dracut-network
-dracut-squash
 e2fsprogs
 e2fsprogs-libs
 elfutils-default-yama-scope
@@ -70,8 +64,6 @@ fuse-libs
 gawk
 gdbm
 gdbm-libs
-geolite2-city
-geolite2-country
 gettext
 gettext-libs
 glib2
@@ -101,7 +93,6 @@ hwdata
 ima-evm-utils
 info
 initscripts
-ipcalc
 iproute
 iprutils
 iptables-libs
@@ -132,7 +123,6 @@ kernel-core
 kernel-modules
 kernel-tools
 kernel-tools-libs
-kexec-tools
 keyutils-libs
 kmod
 kmod-libs
@@ -168,7 +158,6 @@ libidn2
 libkcapi
 libkcapi-hmaccalc
 libksba
-libmaxminddb
 libmetalink
 libmnl
 libmodulemd1
@@ -217,7 +206,6 @@ lshw
 lsscsi
 lua-libs
 lz4-libs
-lzo
 man-db
 microcode_ctl
 mpfr
@@ -309,9 +297,7 @@ sg3_utils-libs
 shadow-utils
 shared-mime-info
 slang
-snappy
 sqlite-libs
-squashfs-tools
 sudo
 systemd
 systemd-libs
@@ -347,6 +333,21 @@ lvm2-libs
 # libnetfilter_conntrack
 # libnfnetlink
 # libnftnl
+
+# kexec-tools
+# bind-export-libs
+# dhcp-client
+# dhcp-common
+# dhcp-libs
+# dracut-network
+# dracut-squash
+# geolite2-city
+# geolite2-country
+# ipcalc
+# libmaxminddb
+# lzo
+# snappy
+# squashfs-tools
 )
 
 in_array() {
