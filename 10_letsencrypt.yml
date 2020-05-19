@@ -7,7 +7,9 @@
   tasks: 
     - name: Install certbot
       dnf: 
-        name: certbot
+        name: 
+          - certbot
+          - python3-certbot-nginx
         state: present 
 
     - name: Check local copy of letsencrypt
@@ -26,8 +28,8 @@
             
     - name: Run certbot
       shell: >
-        /usr/local/bin/certbot-auto certonly --nginx --agree-tos --non-interactive 
-        -m {{ target_email }} -d {{ hostname }},test.{{ hostname }}
+        certbot certonly --nginx --agree-tos --non-interactive 
+        -m {{ target_email }} -d {{ domains }}
       args:
         creates: /var/log/letsencrypt/letsencrypt.log
       register: certbot_out
