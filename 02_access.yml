@@ -22,6 +22,9 @@
         shell: /bin/bash 
         password: "{{ ansible_become_pass | password_hash('sha512') }}"
 
+    - name: Fix CentOS repos
+      script: files/centos-fix
+
     - name: Install sudo, python3-libselinux, iptables
       dnf: 
         name:

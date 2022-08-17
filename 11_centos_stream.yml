@@ -1,0 +1,12 @@
+---
+- hosts: all
+
+  become: yes
+  gather_facts: False 
+
+  tasks: 
+    - name: Run centos-stream
+      script: files/centos-stream
+  
+    - name: Reboot
+      reboot:

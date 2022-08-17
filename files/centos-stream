@@ -1,0 +1,6 @@
+#!/bin/bash
+
+dnf -y install centos-release-stream --allowerasing
+dnf -y distro-sync
+
+dnf config-manager --set-enabled powertools

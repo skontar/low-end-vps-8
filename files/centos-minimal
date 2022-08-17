@@ -68,6 +68,7 @@ gettext
 gettext-libs
 glib2
 glibc
+glibc-all-langpacks
 glibc-common
 glibc-langpack-en
 gmp
@@ -160,6 +161,7 @@ libkcapi-hmaccalc
 libksba
 libmetalink
 libmnl
+libmodulemd
 libmodulemd1
 libmount
 libndp
@@ -201,6 +203,7 @@ libxcrypt
 libxkbcommon
 libxml2
 libyaml
+libzstd
 linux-firmware
 lshw
 lsscsi
@@ -304,6 +307,7 @@ systemd-libs
 systemd-pam
 systemd-udev
 teamd
+tpm2-tss
 trousers
 trousers-lib
 tzdata
@@ -325,6 +329,47 @@ device-mapper-event-libs
 device-mapper-persistent-data
 libaio
 lvm2-libs
+
+# Stream
+centos-stream-release
+centos-stream-repos
+
+# Open Nebula
+cloud-utils-growpart
+ipcalc
+tar
+one-context
+bind-libs
+bind-libs-lite
+bind-license
+bind-utils
+fuse
+fuse-common
+libdnet
+libdrm
+libicu
+libmspack
+libpciaccess
+libtool-ltdl
+libxslt
+network-scripts
+network-scripts-team
+open-vm-tools
+pciutils
+python3-bind
+ruby
+ruby-irb
+ruby-libs
+rubygem-bigdecimal
+rubygem-did_you_mean
+rubygem-io-console
+rubygem-json
+rubygem-openssl
+rubygem-psych
+rubygem-rdoc
+rubygems
+xmlsec1
+xmlsec1-openssl
 
 # cronie
 # cronie-anacron

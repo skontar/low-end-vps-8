@@ -14,7 +14,8 @@
   
     - name: Enable EPEL
       dnf: 
-        name: epel-release 
+        name: 
+          - epel-release 
         state: present 
 
     - name: Enable PowerTools for EPEL

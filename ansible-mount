@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Get available hosts and playbooks
+hosts=$( tail -n +2 hosts )
+readarray -t hosts <<< "$hosts"
+mount_root="/mount"
+umount_command="fusermount -u"
+
+# Get user to select hosts
+echo "Select host:"
+echo "[0] - Unmount all"
+for (( i = 0; i < ${#hosts[@]}; i++ )); do
+    echo "[$(( i + 1 ))] - ${hosts[i]}"
+done
+
+read response
+echo
+
+if ! (( response >= 0 && response <= ${#hosts[@]} )); then
+    echo "Invalid host"
+    exit 1
+fi
+if (( response != 0 )); then
+    host="${hosts[response - 1]}"
+
+    # Get info
+    user=$( ansible-vault view group_vars/servers | awk '/ansible_user/ { print $2 }' )
+    port=$( ansible-vault view group_vars/servers | awk '/ansible_port/ { print $2 }' )
+    ip_address=$( ansible-vault view "host_vars/$host" | awk '/ansible_host/ { print $2 }' )
+
+    target_path="$mount_root/$host"
+    if [[ ! -d "$target_path" ]]; then
+        mkdir ${target_path}
+    fi
+
+    echo "sshfs ${user}@${ip_address}:/home/${user} ${target_path} -p ${port}"
+    sshfs "${user}@${ip_address}:/home/${user}" "${target_path}" -p "${port}"
+else
+    for (( i = 0; i < ${#hosts[@]}; i++ )); do
+        target_path="$mount_root/${hosts[i]}"
+        if mountpoint -q ${target_path}; then  # Check if mountpoint is mounted now
+            echo "$umount_command $target_path"
+            ${umount_command} ${target_path}
+        fi
+    done
+fi
+
